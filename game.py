@@ -38,19 +38,34 @@ class Player:
         self.walk_index = 0
         self.crouch_index = 0
         self.crouch_move_index = 0
+        self.crouch_timer = 0
+        self.jump_index = 0
+        self.jump_timer = 0
         self.frame_timer = 0
         self.image = self.walk_sheet.get_frame(0)
         self.rect = self.image.get_rect()
+
+    def toggle_crouch(self):
+        if not self.on_ground:
+            return
+        self.crouched = not self.crouched
+        self.crouch_timer = 0
+        self.crouch_index = 0
+
+    def start_jump(self):
+        if self.on_ground:
+            self.vy = -15
+            self.on_ground = False
+            self.jump_index = 0
+            self.jump_timer = 0
 
     def handle_input(self, keys, dt):
         speed = 5
         crouch_speed = 3
         self.vx = 0
-        self.crouched = keys[pygame.K_LSHIFT]
 
         left = keys[pygame.K_a] or keys[pygame.K_LEFT]
         right = keys[pygame.K_d] or keys[pygame.K_RIGHT]
-        jump = keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]
 
         if self.crouched:
             if left:
@@ -66,10 +81,6 @@ class Player:
             elif right:
                 self.vx = speed
                 self.facing = 1
-
-        if jump and self.on_ground:
-            self.vy = -15
-            self.on_ground = False
 
     def apply_physics(self):
         gravity = 0.8
@@ -87,7 +98,11 @@ class Player:
     def update_animation(self, dt):
         self.frame_timer += dt
         delay = 100
+
         if self.on_ground:
+            self.jump_index = 0
+            self.jump_timer = 0
+            self.crouch_timer += dt
             if self.crouched:
                 if self.vx != 0:
                     sheet = self.crouch_move_sheet
@@ -95,9 +110,13 @@ class Player:
                     self.image = sheet.get_frame(index)
                 else:
                     sheet = self.crouch_sheet
-                    index = int(self.frame_timer // delay) % sheet.frames
+                    if self.crouch_index < sheet.frames - 1 and self.crouch_timer >= delay:
+                        self.crouch_timer = 0
+                        self.crouch_index += 1
+                    index = min(self.crouch_index, sheet.frames - 1)
                     self.image = sheet.get_frame(index)
             else:
+                self.crouch_index = 0
                 if self.vx != 0:
                     sheet = self.walk_sheet
                     index = int(self.frame_timer // delay) % sheet.frames
@@ -105,8 +124,13 @@ class Player:
                 else:
                     self.image = self.walk_sheet.get_frame(0)
         else:
-            # jumping: use frame 4 (index 3) while in air
-            self.image = self.jump_sheet.get_frame(3)
+            self.jump_timer += dt
+            sheet = self.jump_sheet
+            if self.jump_index < 3 and self.jump_timer >= delay:
+                self.jump_timer = 0
+                self.jump_index += 1
+            index = min(self.jump_index, 3)
+            self.image = sheet.get_frame(index)
         if self.facing == -1:
             self.image = pygame.transform.flip(self.image, True, False)
 
@@ -130,6 +154,11 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LSHIFT:
+                    player.toggle_crouch()
+                elif event.key in (pygame.K_SPACE, pygame.K_w, pygame.K_UP):
+                    player.start_jump()
 
         keys = pygame.key.get_pressed()
         player.handle_input(keys, dt)
