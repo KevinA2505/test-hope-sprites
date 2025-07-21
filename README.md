@@ -23,4 +23,5 @@ Controls:
 - `A`/`D` or Left/Right arrows to move
 - `Left Shift` to toggle crouch
 - `Space`, `W` or Up arrow to jump
+  - Jumping while crouched gives a higher leap
 ```
