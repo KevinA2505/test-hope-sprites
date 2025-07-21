@@ -36,7 +36,9 @@ class Player:
         self.image = stand_frame
         self.rect = pygame.Rect(0, 0, self.width, self.stand_height)
         self.rect.midbottom = (self.x, self.y)
-        self.jump_velocity = -15
+        # base jump velocity increased by 15%
+        self.base_jump_velocity = -15 * 1.15
+        self.jump_velocity = self.base_jump_velocity
         self.jump_prepare = False
         self.jump_prepare_timer = 0
         self.jump_prepare_delay = 150  # milliseconds delay before jumping
@@ -65,10 +67,10 @@ class Player:
             self.jump_timer = 0
             # Jump higher when crouched and stand up immediately
             if self.crouched:
-                self.jump_velocity = -15 * 1.15
+                self.jump_velocity = self.base_jump_velocity * 1.15
                 self.crouched = False
             else:
-                self.jump_velocity = -15
+                self.jump_velocity = self.base_jump_velocity
 
     def handle_input(self, keys, dt):
         speed = 5
@@ -129,6 +131,7 @@ class Player:
         self.update_rect()
 
     def resolve_collisions(self, platforms, horizontal):
+        grounded = False
         for p in platforms:
             if self.rect.colliderect(p.rect):
                 if horizontal:
@@ -142,12 +145,21 @@ class Player:
                     if self.vy > 0:
                         self.rect.bottom = p.rect.top
                         self.y = self.rect.bottom
-                        self.on_ground = True
+                        grounded = True
                     elif self.vy < 0:
                         self.rect.top = p.rect.bottom
                         self.y = self.rect.bottom
                     self.vy = 0
                 self.update_rect()
+            elif not horizontal and self.vy >= 0:
+                if (
+                    self.rect.bottom == p.rect.top
+                    and self.rect.right > p.rect.left
+                    and self.rect.left < p.rect.right
+                ):
+                    grounded = True
+        if not horizontal:
+            self.on_ground = grounded
 
     def update_animation(self, dt):
         self.frame_timer += dt
@@ -198,9 +210,9 @@ class Player:
             self.image = pygame.transform.flip(self.image, True, False)
 
     def update_rect(self):
-        height = self.crouch_height if self.crouched else self.stand_height
-        self.rect.width = self.width
-        self.rect.height = height
+        # adjust the hitbox to match the current sprite size
+        self.rect.width = self.image.get_width()
+        self.rect.height = self.image.get_height()
         self.rect.midbottom = (self.x, self.y)
 
     def draw(self, surface, camera_x=0, camera_y=0):
