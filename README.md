@@ -19,6 +19,6 @@ python game.py
 
 Controls:
 - `A`/`D` or Left/Right arrows to move
-- `Left Shift` to crouch
+- `Left Shift` to toggle crouch
 - `Space`, `W` or Up arrow to jump
 ```
