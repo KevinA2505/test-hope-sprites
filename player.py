@@ -25,9 +25,18 @@ class Player:
         self.jump_index = 0
         self.jump_timer = 0
         self.frame_timer = 0
-        self.image = self.walk_sheet.get_frame(0)
-        self.rect = self.image.get_rect()
-        self.mask = pygame.mask.from_surface(self.image)
+        # Use the first frames to determine the physics body size so it stays
+        # constant regardless of the current animation frame. Relying on the
+        # sprite frame sizes caused jitter when colliding with platforms.
+        stand_frame = self.walk_sheet.get_frame(0)
+        crouch_frame = self.crouch_sheet.get_frame(0)
+        self.width = stand_frame.get_width()
+        self.stand_height = stand_frame.get_height()
+        self.crouch_height = crouch_frame.get_height()
+        self.image = stand_frame
+        self.rect = pygame.Rect(0, 0, self.width, self.stand_height)
+        self.rect.midbottom = (self.x, self.y)
+        self.jump_velocity = -15
         self.jump_prepare = False
         self.jump_prepare_timer = 0
         self.jump_prepare_delay = 150  # milliseconds delay before jumping
@@ -36,9 +45,8 @@ class Player:
         if not self.on_ground:
             return
         if self.crouched:
-            # attempt to stand - check for space
-            test_image = self.walk_sheet.get_frame(0)
-            test_rect = test_image.get_rect()
+            # attempt to stand - check for space using the standing hit box
+            test_rect = pygame.Rect(0, 0, self.width, self.stand_height)
             test_rect.midbottom = (self.x, self.y)
             for ob in obstacles:
                 if test_rect.colliderect(ob.rect):
@@ -55,6 +63,12 @@ class Player:
             self.jump_prepare_timer = 0
             self.jump_index = 0
             self.jump_timer = 0
+            # Jump higher when crouched and stand up immediately
+            if self.crouched:
+                self.jump_velocity = -15 * 1.15
+                self.crouched = False
+            else:
+                self.jump_velocity = -15
 
     def handle_input(self, keys, dt):
         speed = 5
@@ -85,7 +99,7 @@ class Player:
             self.jump_prepare_timer += dt
             if self.jump_prepare_timer >= self.jump_prepare_delay:
                 self.jump_prepare = False
-                self.vy = -15
+                self.vy = self.jump_velocity
                 self.on_ground = False
 
         if not self.on_ground:
@@ -116,26 +130,23 @@ class Player:
     def resolve_collisions(self, platforms, horizontal):
         for p in platforms:
             if self.rect.colliderect(p.rect):
-                offset = (p.rect.left - self.rect.left, p.rect.top - self.rect.top)
-                if self.mask.overlap(p.mask, offset):
-                    if horizontal:
-                        if self.vx > 0:
-                            self.rect.right = p.rect.left
-                            self.x = self.rect.centerx
-                        elif self.vx < 0:
-                            self.rect.left = p.rect.right
-                            self.x = self.rect.centerx
-                        self.vx = 0
-                    else:
-                        if self.vy > 0:
-                            self.rect.bottom = p.rect.top
-                            self.y = self.rect.bottom
-                            self.on_ground = True
-                        elif self.vy < 0:
-                            self.rect.top = p.rect.bottom
-                            self.y = self.rect.bottom
-                        self.vy = 0
-                    self.update_rect()
+                if horizontal:
+                    if self.vx > 0:
+                        self.rect.right = p.rect.left
+                    elif self.vx < 0:
+                        self.rect.left = p.rect.right
+                    self.x = self.rect.centerx
+                    self.vx = 0
+                else:
+                    if self.vy > 0:
+                        self.rect.bottom = p.rect.top
+                        self.y = self.rect.bottom
+                        self.on_ground = True
+                    elif self.vy < 0:
+                        self.rect.top = p.rect.bottom
+                        self.y = self.rect.bottom
+                    self.vy = 0
+                self.update_rect()
 
     def update_animation(self, dt):
         self.frame_timer += dt
@@ -184,10 +195,11 @@ class Player:
 
         if self.facing == -1:
             self.image = pygame.transform.flip(self.image, True, False)
-        self.mask = pygame.mask.from_surface(self.image)
 
     def update_rect(self):
-        self.rect = self.image.get_rect()
+        height = self.crouch_height if self.crouched else self.stand_height
+        self.rect.width = self.width
+        self.rect.height = height
         self.rect.midbottom = (self.x, self.y)
 
     def draw(self, surface, camera_x=0):
