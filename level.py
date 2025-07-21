@@ -1,19 +1,34 @@
 import pygame
 
+PLATFORM_COLLISION_HEIGHT = 10
+
 class Platform:
-    def __init__(self, rect):
-        self.rect = rect
-        self.mask = pygame.Mask(rect.size, fill=True)
+    def __init__(self, rect, collision_height=None):
+        """Create a platform.
+
+        Parameters
+        ----------
+        rect : pygame.Rect
+            Visual rectangle of the platform.
+        collision_height : int, optional
+            Height of the collision area. If ``None`` the full ``rect`` height
+            is used.
+        """
+        self.draw_rect = rect
+        if collision_height is None:
+            collision_height = rect.height
+        self.rect = pygame.Rect(rect.x, rect.y, rect.width, collision_height)
+        self.mask = pygame.Mask(self.rect.size, fill=True)
 
     def draw(self, surface, camera_x=0, camera_y=0):
         pygame.draw.rect(
             surface,
             (0, 0, 0),
             pygame.Rect(
-                self.rect.x - camera_x,
-                self.rect.y - camera_y,
-                self.rect.width,
-                self.rect.height,
+                self.draw_rect.x - camera_x,
+                self.draw_rect.y - camera_y,
+                self.draw_rect.width,
+                self.draw_rect.height,
             ),
         )
 
@@ -33,8 +48,10 @@ class Level:
         h = self.height
         gh = self.ground_height
 
-        # Base ground
-        self.platforms.append(Platform(pygame.Rect(0, h - gh, self.width, gh)))
+        # Base ground uses full height for collisions
+        self.platforms.append(
+            Platform(pygame.Rect(0, h - gh, self.width, gh), collision_height=gh)
+        )
 
         margin = 60
         last_y = h - gh - 120
@@ -53,7 +70,9 @@ class Level:
                         x = min(self.width - rect.width, px + margin)
                     rect.x = x
 
-            self.platforms.append(Platform(rect))
+            self.platforms.append(
+                Platform(rect, collision_height=PLATFORM_COLLISION_HEIGHT)
+            )
             # place next platform higher up with some variation
             last_y -= random.randint(120, 200)
 
