@@ -116,7 +116,7 @@ class Player:
         self.on_ground = False
         self.resolve_collisions(level.platforms, horizontal=False)
 
-        floor_y = HEIGHT - GROUND_HEIGHT
+        floor_y = level.height - level.ground_height
         if self.y >= floor_y:
             self.y = floor_y
             self.vy = 0
@@ -125,6 +125,7 @@ class Player:
 
         # keep player within level bounds
         self.x = max(self.rect.width // 2, min(level.width - self.rect.width // 2, self.x))
+        self.y = max(self.rect.height // 2, min(self.y, floor_y))
         self.update_rect()
 
     def resolve_collisions(self, platforms, horizontal):
@@ -202,6 +203,6 @@ class Player:
         self.rect.height = height
         self.rect.midbottom = (self.x, self.y)
 
-    def draw(self, surface, camera_x=0):
+    def draw(self, surface, camera_x=0, camera_y=0):
         self.update_rect()
-        surface.blit(self.image, (self.rect.x - camera_x, self.rect.y))
+        surface.blit(self.image, (self.rect.x - camera_x, self.rect.y - camera_y))

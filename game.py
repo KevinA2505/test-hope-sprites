@@ -10,8 +10,14 @@ class Game:
         pygame.display.set_caption('Hope Sprite Test')
         self.clock = pygame.time.Clock()
         world_width = WIDTH * 3
-        self.level = Level(world_width, HEIGHT, GROUND_HEIGHT)
-        self.player = Player(WIDTH // 2, HEIGHT - GROUND_HEIGHT)
+        world_height = HEIGHT * 3
+        self.player = Player(WIDTH // 2, world_height - GROUND_HEIGHT)
+        self.level = Level(
+            world_width,
+            world_height,
+            GROUND_HEIGHT,
+            player_start=(self.player.x, self.player.y),
+        )
         self.running = True
 
     def run(self):
@@ -22,7 +28,7 @@ class Game:
             self.player.handle_input(keys, dt)
             self.player.apply_physics(self.level, dt)
             self.player.update_animation(dt)
-            self.level.update_camera(self.player.x, WIDTH)
+            self.level.update_camera(self.player.x, self.player.y, WIDTH, HEIGHT)
             self.draw()
         pygame.quit()
 
@@ -38,8 +44,8 @@ class Game:
 
     def draw(self):
         self.screen.fill((255, 255, 255))
-        self.level.draw(self.screen, WIDTH)
-        self.player.draw(self.screen, self.level.camera_x)
+        self.level.draw(self.screen, WIDTH, HEIGHT)
+        self.player.draw(self.screen, self.level.camera_x, self.level.camera_y)
         pygame.display.flip()
 
 if __name__ == '__main__':
