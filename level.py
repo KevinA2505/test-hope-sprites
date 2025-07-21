@@ -54,7 +54,8 @@ class Level:
                     rect.x = x
 
             self.platforms.append(Platform(rect))
-            last_y -= 150
+            # place next platform higher up with some variation
+            last_y -= random.randint(120, 200)
 
     def update_camera(self, player_x, player_y, screen_width, screen_height):
         self.camera_x = max(0, min(player_x - screen_width // 2, self.width - screen_width))
