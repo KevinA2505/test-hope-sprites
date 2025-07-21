@@ -1,6 +1,8 @@
 # Hope Sprite Demo
 
 This small demo uses Pygame to animate the sprite sheets found in `assets/img`.
+The latest version separates the game logic into several classes and includes a
+larger scrolling world.
 
 ## Requirements
 - Python 3
